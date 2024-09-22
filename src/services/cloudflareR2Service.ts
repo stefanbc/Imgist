@@ -36,6 +36,14 @@ const cloudflareR2Service = {
       uploadedAt: new Date(),
     }
   },
+
+  async listFiles(): Promise<FileInfo[]> {
+    const response = await axios.get(`${API_URL}/list-files`)
+    return response.data.files.map((file: any) => ({
+      ...file,
+      uploadedAt: new Date(file.uploadedAt),
+    }))
+  },
 }
 
 export default cloudflareR2Service

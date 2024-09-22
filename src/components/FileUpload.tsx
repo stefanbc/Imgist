@@ -1,28 +1,22 @@
 // src/components/FileUpload.tsx
-import React, { useState } from 'react';
-import { Button, CircularProgress, Snackbar } from '@mui/material';
-import { useMutation } from '@tanstack/react-query';
-import { useFileStore } from '../store/useImageStore';
+import React, { useState, useRef } from 'react';
+import { Button, CircularProgress, Typography, Box, LinearProgress } from '@mui/material';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import cloudflareR2Service from '../services/cloudflareR2Service';
 
 const FileUpload: React.FC = () => {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const [openSnackbar, setOpenSnackbar] = useState(false);
-    const [snackbarMessage, setSnackbarMessage] = useState('');
-    const addFile = useFileStore((state) => state.addFile);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const queryClient = useQueryClient();
 
     const mutation = useMutation({
         mutationFn: cloudflareR2Service.uploadFile,
-        onSuccess: (data) => {
-            addFile(data);
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['files'] });
             setSelectedFile(null);
-            setSnackbarMessage('File uploaded successfully');
-            setOpenSnackbar(true);
-        },
-        onError: (error) => {
-            console.error('Upload failed:', error);
-            setSnackbarMessage('File upload failed');
-            setOpenSnackbar(true);
+            setUploadProgress(0);
         },
     });
 
@@ -38,32 +32,57 @@ const FileUpload: React.FC = () => {
         }
     };
 
-    const handleCloseSnackbar = () => {
-        setOpenSnackbar(false);
+    const handleButtonClick = () => {
+        fileInputRef.current?.click();
     };
 
     return (
-        <div className="mb-4">
+        <Box sx={{ mb: 4, p: 3, border: '1px dashed #ccc', borderRadius: 2, textAlign: 'center' }}>
             <input
                 type="file"
                 onChange={handleFileChange}
-                className="mb-2"
+                style={{ display: 'none' }}
+                ref={fileInputRef}
             />
             <Button
                 variant="contained"
                 color="primary"
+                startIcon={<CloudUploadIcon />}
+                onClick={handleButtonClick}
+                sx={{ mb: 2 }}
+            >
+                Select File
+            </Button>
+            {selectedFile && (
+                <Typography variant="body1" sx={{ mb: 2 }}>
+                    Selected: {selectedFile.name}
+                </Typography>
+            )}
+            <Button
+                variant="contained"
+                color="secondary"
                 onClick={handleUpload}
                 disabled={!selectedFile || mutation.isPending}
+                sx={{ mb: 2 }}
             >
                 {mutation.isPending ? <CircularProgress size={24} /> : 'Upload'}
             </Button>
-            <Snackbar
-                open={openSnackbar}
-                autoHideDuration={6000}
-                onClose={handleCloseSnackbar}
-                message={snackbarMessage}
-            />
-        </div>
+            {mutation.isPending && (
+                <Box sx={{ width: '100%' }}>
+                    <LinearProgress variant="determinate" value={uploadProgress} />
+                </Box>
+            )}
+            {mutation.isError && (
+                <Typography color="error" sx={{ mt: 2 }}>
+                    Upload failed. Please try again.
+                </Typography>
+            )}
+            {mutation.isSuccess && (
+                <Typography color="success" sx={{ mt: 2 }}>
+                    File uploaded successfully!
+                </Typography>
+            )}
+        </Box>
     );
 };
 
