@@ -1,24 +1,21 @@
 import { create } from 'zustand'
 
-interface Image {
+interface File {
   id: string
   name: string
-  url: string
+  size: number
+  uploadedAt: Date
 }
 
-interface ImageStore {
-  images: Image[]
-  addImage: (image: Image) => void
-  removeImage: (imageId: string) => void
+interface FileStore {
+  files: File[]
+  addFile: (file: File) => void
+  removeFile: (id: string) => void
 }
 
-const useImageStore = create<ImageStore>((set) => ({
-  images: [],
-  addImage: (image) => set((state) => ({ images: [...state.images, image] })),
-  removeImage: (imageId) =>
-    set((state) => ({
-      images: state.images.filter((image) => image.id !== imageId),
-    })),
+export const useFileStore = create<FileStore>((set) => ({
+  files: [],
+  addFile: (file) => set((state) => ({ files: [...state.files, file] })),
+  removeFile: (id) =>
+    set((state) => ({ files: state.files.filter((file) => file.id !== id) })),
 }))
-
-export default useImageStore
